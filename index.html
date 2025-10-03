@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTF Write-ups | Hacking Solutions & Analysis</title>
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind to use a dark theme and custom colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-dark': '#1e293b', // Slate 800
+                        'secondary-dark': '#0f172a', // Slate 900
+                        'accent-neon': '#34d399', // Emerald 400 (a bright neon green)
+                        'text-light': '#e2e8f0', // Slate 200
+                        'text-muted': '#94a3b8', // Slate 400
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'], // Good for code/hacking feel
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Apply the custom mono font to the body for a thematic feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Secondary Dark */
+        }
+        .card-glow {
+            box-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card-glow:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(52, 211, 153, 0.5);
+        }
+    </style>
+</head>
+<body class="dark text-text-light min-h-screen">
+    <div id="app" class="max-w-7xl mx-auto">
+        
+        <!-- Header/Navigation -->
+        <header class="bg-primary-dark p-4 shadow-lg sticky top-0 z-10">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-mono font-bold text-accent-neon tracking-wider">
+                    <span class="text-text-light">&lt;</span>CTF<span class="text-text-light">/&gt;</span> Logs
+                </h1>
+                <nav>
+                    <ul class="flex space-x-6 text-sm md:text-base font-semibold">
+                        <li><a href="#writeups" class="hover:text-accent-neon transition duration-200">Write-ups</a></li>
+                        <li><a href="#" class="hover:text-accent-neon transition duration-200">About Me</a></li>
+                        <li><a href="#" class="hover:text-accent-neon transition duration-200">Contact</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </header>
+
+        <main class="p-4 md:p-8">
+
+            <!-- Hero Section -->
+            <section class="text-center py-16 mb-12 bg-primary-dark rounded-xl shadow-2xl">
+                <h2 class="text-4xl md:text-6xl font-extrabold text-text-light mb-4">
+                    Captured Flags, Documented Triumphs
+                </h2>
+                <p class="text-lg md:text-xl text-text-muted mb-6 max-w-3xl mx-auto">
+                    A repository of technical analyses and step-by-step solutions from various Capture The Flag competitions. Learn the methodologies behind the exploits.
+                </p>
+                <a href="#writeups" class="inline-block px-8 py-3 text-lg font-bold bg-accent-neon text-secondary-dark rounded-full hover:bg-emerald-300 transition duration-300 transform hover:scale-105 shadow-xl">
+                    Start Reading
+                </a>
+            </section>
+
+            <!-- Write-up Grid Section -->
+            <section id="writeups" class="pt-8">
+                <h3 class="text-3xl font-bold text-accent-neon border-b border-accent-neon pb-2 mb-8">
+                    Latest Write-up
+                </h3>
+
+                <!-- Using max-w-lg and mx-auto to center the single card for better presentation -->
+                <div class="grid grid-cols-1 gap-8 max-w-lg mx-auto">
+                    
+                    <!-- Write-up Card 1 (The only one remaining) -->
+                    <article class="bg-primary-dark p-6 rounded-xl card-glow border border-accent-neon/20">
+                        <span class="inline-block text-xs font-mono uppercase tracking-widest text-accent-neon bg-accent-neon/10 px-3 py-1 rounded-full mb-4">Web</span>
+                        <h4 class="text-xl font-semibold mb-2 text-text-light">
+                            Pwnable Challenge: SQL Injection on a Leaky Database
+                        </h4>
+                        <p class="text-text-muted text-sm mb-4">
+                            Detailed breakdown of exploiting a complex blind SQL Injection vulnerability to bypass authentication and retrieve the flag. This is the first of many successful captures!
+                        </p>
+                        <div class="flex justify-between items-center text-sm text-text-muted">
+                            <span class="flex items-center space-x-1">
+                                <!-- Calendar icon (using inline SVG for simplicity) -->
+                                <svg class="w-4 h-4 text-accent-neon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span>Oct 2, 2025</span>
+                            </span>
+                            <a href="#" class="text-accent-neon hover:underline font-medium">Read More &rarr;</a>
+                        </div>
+                    </article>
+                    
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-secondary-dark p-6 mt-12 border-t border-accent-neon/30 text-center">
+            <p class="text-sm text-text-muted font-mono">
+                &copy; <span id="current-year"></span> Your Name. All flags captured.
+            </p>
+            <div class="flex justify-center space-x-4 mt-2">
+                <!-- Example Social Links -->
+                <a href="#" class="text-text-muted hover:text-accent-neon transition duration-200">GitHub</a>
+                <a href="#" class="text-text-muted hover:text-accent-neon transition duration-200">LinkedIn</a>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- Simple JS for dynamic year in footer -->
+    <script>
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
